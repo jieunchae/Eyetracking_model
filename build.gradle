@@ -1,0 +1,47 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://repo.spring.io/plugins-snapshot' }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.5.1'
+        classpath 'io.spring.gradle:dependency-management-plugin:1.0.7.BUILD-SNAPSHOT'
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        
+    }
+}
+allprojects {
+    apply plugin: 'io.spring.dependency-management'
+    dependencyManagement{
+        dependencies{
+            dependency "com.google.guava:guave:26.0-jre"
+            dependency('org.springframework:spring-core:4.0.3.RELEASE'){
+                exclude 'commons-logging:commons-logging'
+            }
+        }
+    }
+    configurations.matching { it.name == '_internal_aapt2_binary' }.all { config ->
+        config.resolutionStrategy.eachDependency { details ->
+            details.useVersion("3.5.0-alpha03-5252756")
+        }
+    }
+    repositories {
+        google()
+        jcenter()
+
+    }
+}
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
