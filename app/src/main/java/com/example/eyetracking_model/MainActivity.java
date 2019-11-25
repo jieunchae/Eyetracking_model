@@ -77,8 +77,7 @@ import static org.opencv.core.CvType.CV_8UC3;
 import static org.opencv.imgproc.Imgproc.INTER_AREA;
 import static org.opencv.imgproc.Imgproc.resize;
 
-public class MainActivity extends AppCompatActivity
-        implements CameraBridgeViewBase.CvCameraViewListener2 {
+public class MainActivity extends AppCompatActivity {
 
     private static final String CLOUD_VISION_API_KEY = "AIzaSyBugnqMo-RDSONebHimaB-L3f7fZVsZpb4";
     public static final String FILE_NAME = "temp.jpg";
@@ -132,26 +131,6 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-    }
-
-
-    @Override
-    public void onCameraViewStarted(int width, int height) {
-        String pro = copyFile("itracker_deploy.prototxt", this);
-        String caff = copyFile("itracker_iter_92000.caffemodel", this);
-        net = Dnn.readNetFromCaffe(pro, caff);
-        Log.i(TAG2, "Network loaded successfully");
-
-    }
-
-    @Override
-    public void onCameraViewStopped() {
-
-    }
-
-    @Override
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return null;
     }
 
     @Override
@@ -585,9 +564,9 @@ public class MainActivity extends AppCompatActivity
                 //nowBit = newBit4;
 
 
-                String pro = copyFile("itracker_train_val.prototxt", this);
-                String caff = copyFile("itracker_iter_92000.caffemodel", this);
-                net = Dnn.readNetFromCaffe(pro,caff);
+                //String pro = copyFile("itracker_train_val.prototxt", this);
+                //String caff = copyFile("itracker_iter_92000.caffemodel", this);
+                net = Dnn.readNetFromCaffe("./storage/emulated/0/itracker_train_val.prototxt","./storage/emulated/0/itracker_iter_92000.caffemodel");
                 //net.setInput(img_right_resized, "image_right");
                 //net.setInput(img_left_resized, "image_left");
                 //net.setInput(img1_resized, "image_face");
