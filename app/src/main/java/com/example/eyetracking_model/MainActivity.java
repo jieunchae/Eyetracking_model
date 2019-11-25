@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapRegionDecoder;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -98,6 +99,7 @@ public class MainActivity extends AppCompatActivity
 
     private static final String TAG2 = "opencv";
     private Net net;
+    public Mat img_right_resized = null;
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
@@ -130,16 +132,16 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-
     }
 
 
     @Override
     public void onCameraViewStarted(int width, int height) {
-
         String pro = copyFile("itracker_deploy.prototxt", this);
         String caff = copyFile("itracker_iter_92000.caffemodel", this);
         net = Dnn.readNetFromCaffe(pro, caff);
+        Log.i(TAG2, "Network loaded successfully");
+
     }
 
     @Override
@@ -166,6 +168,39 @@ public class MainActivity extends AppCompatActivity
             //mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
             //myText.setText("SUCCESS");
         }
+    }
+
+
+    private static String saveFile(String filename, Context context) {
+        String baseDir = Environment.getExternalStorageDirectory().getPath();
+        String pathDir = baseDir + File.separator + filename;
+
+        AssetManager assetManager = context.getAssets();
+
+        InputStream inputStream = null;
+        OutputStream outputStream = null;
+
+        try {
+            Log.d( TAG, "copyFile :: 다음 경로로 파일복사 "+ pathDir);
+            inputStream = assetManager.open(filename);
+            outputStream = new FileOutputStream(pathDir);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, read);
+            }
+            inputStream.close();
+            inputStream = null;
+            outputStream.flush();
+            outputStream.close();
+            outputStream = null;
+        } catch (Exception e) {
+            Log.d(TAG, "copyFile :: 파일 복사 중 예외 발생 "+e.toString() );
+        }
+
+        return pathDir;
+
     }
 
     private static String copyFile(String filename, Context context) {
@@ -198,6 +233,11 @@ public class MainActivity extends AppCompatActivity
 
         return pathDir;
 
+    }
+
+    public float abs(float x){
+        if(x < 0) return -x;
+        else return x;
     }
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -440,6 +480,16 @@ public class MainActivity extends AppCompatActivity
                 Bitmap newBit = Bitmap.createBitmap(nowBit, vertices.get(0).getX(), vertices.get(0).getY(),
                         vertices.get(1).getX() - vertices.get(0).getX(), vertices.get(2).getY() - vertices.get(0).getY());
 
+                int width = nowBit.getWidth();
+                int height = nowBit.getHeight();
+                int [][] grid = new int[25][25];
+
+                for(int i=(int)(vertices.get(0).getY()/height*25); i<=(int)(vertices.get(2).getY()/height*25); i++){
+                    for(int j=(int)(vertices.get(0).getX()/width*25); j<=(int)(vertices.get(1).getX()/width*25); j++){
+                        grid[i][j] = 1;
+                    }
+                }
+
                 Mat img1 = new Mat();
                 Utils.bitmapToMat(newBit, img1);
                 Mat img1_resized = new Mat();
@@ -453,34 +503,58 @@ public class MainActivity extends AppCompatActivity
                 //message.append(vertices.get(0).getX());
                 //mMainImage.setImageBitmap(newBit);
 
-                float left_eye_right_corner_x = 0;
-                float left_eye_right_corner_y = 0;
-                float left_eye_left_corner_x = 0;
-                float left_eye_left_corner_y = 0;
+                //left_eye
+                float left_of_lefteyebrow_x = 0;
+                float left_of_lefteyebrow_y = 0;
+                float right_of_lefteyebrow_x = 0;
+                float right_of_lefteyebrow_y = 0;
+                float lefteye_x = 0;
+                float lefteye_y = 0;
+
+
+                //right_eye
+                float left_of_righteyebrow_x = 0;
+                float left_of_righteyebrow_y = 0;
+                float right_of_righteyebrow_x = 0;
+                float right_of_righteyebrow_y = 0;
+                float righteye_x = 0;
+                float righteye_y = 0;
 
                 for(Landmark landmark : annotation.getLandmarks()){
                     switch (landmark.getType()){
-                        case "LEFT_EYE_RIGHT_CORNER":
-                            left_eye_right_corner_x = landmark.getPosition().getX();
-                            left_eye_right_corner_y = landmark.getPosition().getY();
-                        case "LEFT_EYE_LEFT_CORNER" :
-                            left_eye_left_corner_x = landmark.getPosition().getX();
-                            left_eye_left_corner_y = landmark.getPosition().getY();
+                        case "LEFT_EYE":
+                            lefteye_x = landmark.getPosition().getX();
+                            lefteye_y = landmark.getPosition().getY();
+                        case "LEFT_OF_LEFT_EYEBROW" :
+                            left_of_lefteyebrow_x = landmark.getPosition().getX();
+                            left_of_lefteyebrow_y = landmark.getPosition().getY();
+                        case "RIGHT_OF_LEFT_EYEBROW" :
+                            right_of_lefteyebrow_x = landmark.getPosition().getX();
+                            right_of_lefteyebrow_y = landmark.getPosition().getY();
+                        case "RIGHT_EYE":
+                            righteye_x = landmark.getPosition().getX();
+                            righteye_y = landmark.getPosition().getY();
+                        case "LEFT_OF_RIGHT_EYEBROW" :
+                            left_of_righteyebrow_x = landmark.getPosition().getX();
+                            left_of_righteyebrow_y = landmark.getPosition().getY();
+                        case "RIGHT_OF_RIGHT_EYEBROW" :
+                            right_of_righteyebrow_x = landmark.getPosition().getX();
+                            right_of_righteyebrow_y = landmark.getPosition().getY();
                     }
                 }
 
-                Bitmap leftbit = Bitmap.createBitmap(nowBit, (int)left_eye_left_corner_x,(int)left_eye_left_corner_y,
-                        (int)(left_eye_right_corner_x-left_eye_left_corner_x),
-                        (int)(left_eye_right_corner_y-left_eye_left_corner_y));
+                Bitmap leftbit = Bitmap.createBitmap(nowBit, (int)left_of_lefteyebrow_x,(int)left_of_lefteyebrow_y,
+                        (int)((right_of_lefteyebrow_x-left_of_lefteyebrow_x)),
+                        (int)(lefteye_y-left_of_lefteyebrow_y)*2);
 
-                message.append(String.valueOf(left_eye_left_corner_x));
-                message.append("   ");
-                message.append(String.valueOf(left_eye_left_corner_y));
-                message.append("   ");
-                message.append(String.valueOf(left_eye_right_corner_x-left_eye_left_corner_x));
-                message.append("   ");
-                message.append(String.valueOf(left_eye_right_corner_y-left_eye_left_corner_y));
-                message.append("   ");
+                //message.append(String.valueOf(left_of_lefteyebrow_x));
+                //message.append("   ");
+                //message.append(String.valueOf(left_of_lefteyebrow_y));
+                //message.append("   ");
+                //message.append(String.valueOf(right_of_lefteyebrow_x-left_of_lefteyebrow_x));
+                //message.append("   ");
+                //message.append(String.valueOf((lefteye_y-left_of_lefteyebrow_y)*2));
+                //message.append("   ");
                 Mat img_left = new Mat();
                 Utils.bitmapToMat(leftbit, img_left);
                 Mat img_left_resized = new Mat();
@@ -488,7 +562,41 @@ public class MainActivity extends AppCompatActivity
 
                 Bitmap newBit3 = Bitmap.createBitmap(224, 224, Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(img_left_resized, newBit3);
-                nowBit = newBit2;
+                //nowBit = newBit3;
+
+                Bitmap rightbit = Bitmap.createBitmap(nowBit, (int)left_of_righteyebrow_x,(int)left_of_righteyebrow_y,
+                        (int)((right_of_righteyebrow_x-left_of_righteyebrow_x)),
+                        (int)((lefteye_y-left_of_lefteyebrow_y)*2));
+
+                /*message.append(String.valueOf(left_of_righteyebrow_y));
+                message.append("   ");
+                message.append(String.valueOf(right_of_righteyebrow_y));
+                message.append("   ");
+                message.append(String.valueOf((right_of_righteyebrow_x-left_of_righteyebrow_x)));
+                message.append("   ");*/
+
+                Mat img_right = new Mat();
+                Utils.bitmapToMat(rightbit, img_right);
+                img_right_resized = new Mat();
+                resize(img_right, img_right_resized, scaleSize);
+
+                Bitmap newBit4 = Bitmap.createBitmap(224, 224, Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(img_right_resized, newBit4);
+                //nowBit = newBit4;
+
+
+                String pro = copyFile("itracker_train_val.prototxt", this);
+                String caff = copyFile("itracker_iter_92000.caffemodel", this);
+                net = Dnn.readNetFromCaffe(pro,caff);
+                //net.setInput(img_right_resized, "image_right");
+                //net.setInput(img_left_resized, "image_left");
+                //net.setInput(img1_resized, "image_face");
+                //net.setInput(grid,"facegrid");
+                String detections = net.forward().toString();
+
+                message.append(detections);
+                message.append("   ");
+
 
                 Message msg = handler.obtainMessage();
                 handler.sendMessage(msg);
